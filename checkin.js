@@ -1,23 +1,27 @@
 const puppeteer = require('puppeteer');
 const https = require('https');
 
-// Hardcoded password (applies to all accounts)
+// 🔐 Set your default password here
 const DEFAULT_PASSWORD = '000000';
 
-// Fetch email list from GitHub raw URL
+// 📥 Fetch accounts from GitHub-hosted raw .txt file
 function fetchEmails() {
   return new Promise((resolve, reject) => {
-    https.get('https://raw.githubusercontent.com/coinmaster202/livu-checkin-data/main/accounts.txt', res => {
+    https.get('https://raw.githubusercontent.com/coinmaster202/livu-checkin-data/main/accounts.txt', (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data.trim().split('\n')));
+      res.on('end', () => resolve(data.trim().split('\n').map(e => e.trim()).filter(Boolean)));
     }).on('error', reject);
   });
 }
 
 module.exports = async function runCheckins() {
   const emails = await fetchEmails();
-  const browser = await puppeteer.launch({ headless: true });
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
 
   for (const email of emails) {
     const password = DEFAULT_PASSWORD;
@@ -25,6 +29,7 @@ module.exports = async function runCheckins() {
     const page = await context.newPage();
 
     try {
+      console.log(`🔐 Logging in as: ${email}`);
       await page.goto('https://www.livuapp.com/login', { waitUntil: 'networkidle2' });
 
       await page.type('input[type="email"]', email);
@@ -34,16 +39,18 @@ module.exports = async function runCheckins() {
         page.waitForNavigation({ waitUntil: 'networkidle2' })
       ]);
 
+      // Try to find a check-in or daily reward button
       const btn = await page.$x("//button[contains(text(), 'Check-in') or contains(text(), 'Daily Reward')]");
       if (btn.length > 0) {
         await btn[0].click();
         await page.waitForTimeout(2000);
         console.log(`✅ Checked in: ${email}`);
       } else {
-        console.log(`⚠️ No check-in button for ${email}`);
+        console.log(`⚠️ No check-in button found for ${email}`);
       }
-    } catch (e) {
-      console.log(`❌ Error with ${email}: ${e.message}`);
+
+    } catch (err) {
+      console.error(`❌ Failed for ${email}: ${err.message}`);
     }
 
     await context.close();

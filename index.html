@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LivU Check-In</title>
+</head>
+<body style="font-family:sans-serif;text-align:center;padding-top:50px">
+  <h1>✅ LivU Local Check-In</h1>
+  <button onclick="startCheckIn()" style="padding:10px 20px;font-size:16px;">Start Check-In</button>
+  <p id="status" style="margin-top:20px;font-weight:bold;"></p>
+
+  <script>
+    function startCheckIn() {
+      document.getElementById('status').innerText = '⏳ Starting check-in...';
+      fetch('http://localhost:3000/checkin', { method: 'POST' })
+        .then(res => res.text())
+        .then(msg => document.getElementById('status').innerText = msg)
+        .catch(err => document.getElementById('status').innerText = '❌ Failed: ' + err);
+    }
+  </script>
+</body>
+</html>

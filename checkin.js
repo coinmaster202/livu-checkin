@@ -1,7 +1,11 @@
 const puppeteer = require('puppeteer');
 const https = require('https');
 
-function fetchAccounts() {
+// Hardcoded password (applies to all accounts)
+const DEFAULT_PASSWORD = '000000';
+
+// Fetch email list from GitHub raw URL
+function fetchEmails() {
   return new Promise((resolve, reject) => {
     https.get('https://raw.githubusercontent.com/coinmaster202/livu-checkin-data/main/accounts.txt', res => {
       let data = '';
@@ -12,11 +16,11 @@ function fetchAccounts() {
 }
 
 module.exports = async function runCheckins() {
-  const accounts = await fetchAccounts();
+  const emails = await fetchEmails();
   const browser = await puppeteer.launch({ headless: true });
 
-  for (const line of accounts) {
-    const [email, password] = line.split(',');
+  for (const email of emails) {
+    const password = DEFAULT_PASSWORD;
     const context = await browser.createIncognitoBrowserContext();
     const page = await context.newPage();
 
